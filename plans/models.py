@@ -26,7 +26,7 @@ def validate_thumbnail_sizes(value):
 
 
 class Plan(models.Model):
-    name = models.CharField(max_length=50, null=False, blank=False, unique=True)
+    name = models.CharField(max_length=50, unique=True)
     thumbnail_sizes = models.JSONField(
         default=list,
         validators=[validate_thumbnail_sizes],
