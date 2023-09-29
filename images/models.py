@@ -14,7 +14,12 @@ from .utils import generate_radom_string
 
 def upload_original_image(instance, filename):
     return os.path.join(
-        "images/original", instance.user.user.email, instance.user.plan.name, generate_radom_string(), filename
+        "images/original",
+        instance.user.user.email,
+        instance.user.plan.name,
+        # adding a random string to avoid users accessing media url directly
+        generate_radom_string(),
+        filename,
     )
 
 
