@@ -21,7 +21,6 @@ class ImageUploadSerializer(serializers.Serializer):
 
             if UserPlan.objects.filter(user=user).exists():
                 if UserPlan.objects.get(user=user).plan.generate_expiring_links:
-                    print(UserPlan.objects.get(user=user).plan.generate_expiring_links)
                     self.fields["expiry_in_seconds"] = serializers.IntegerField(
                         required=False,
                         help_text="Optional expiry time in seconds,\
@@ -31,6 +30,7 @@ class ImageUploadSerializer(serializers.Serializer):
     def validate_expiry_in_seconds(self, value):
         if value is not None and (value < 300 or value > 30000):
             raise serializers.ValidationError("Expiry time needs to be between 300 and 30000 seconds")
+        return value
 
     def create(self, validated_data):
         # get user from request context
