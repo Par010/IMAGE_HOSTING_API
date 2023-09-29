@@ -2,12 +2,15 @@ from rest_framework import status
 from rest_framework.mixins import CreateModelMixin
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
-from rest_framework.viewsets import GenericViewSet
+from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet
 
-from .serializers import ImageUploadSerializer
+from images.models import Image
+
+from .permissions import CanAccessImageListViewSet
+from .serializers import ImageListSerializer, ImageUploadSerializer
 
 
-class ImageViewSet(CreateModelMixin, GenericViewSet):
+class ImageUploadViewSet(CreateModelMixin, GenericViewSet):
     parser_classes = (MultiPartParser,)
     serializer_class = ImageUploadSerializer
 
@@ -17,3 +20,12 @@ class ImageViewSet(CreateModelMixin, GenericViewSet):
         serializer.save()
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class ImageListViewSet(ReadOnlyModelViewSet):
+    serializer_class = ImageListSerializer
+    permission_classes = [CanAccessImageListViewSet]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Image.objects.filter(user__user=user)

@@ -2,6 +2,7 @@ import os
 import uuid
 from io import BytesIO
 
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models
 from django.utils import timezone
@@ -51,10 +52,19 @@ class Image(models.Model):
     title = models.CharField(max_length=100)
     image = models.ImageField(upload_to=upload_original_image)
     upload_time = models.DateTimeField(auto_now_add=True)
-    expiry_in_seconds = models.PositiveIntegerField(blank=True, null=True, help_text="Optional expiry time in seconds")
+    expiry_in_seconds = models.PositiveIntegerField(
+        blank=True, null=True, help_text="Optional expiry time in seconds, needs to be between 300 and 30000 if used"
+    )
 
     def __str__(self):
         return f"{self.user.user.email}-{self.user.plan.name}-{self.title}"
+
+    def clean(self):
+        super().clean()
+
+        if self.expiry_in_seconds is not None:
+            if self.expiry_in_seconds < 300 or self.expiry_in_seconds > 30000:
+                raise ValidationError("Expiry time needs to be between 300 and 30000 seconds")
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)

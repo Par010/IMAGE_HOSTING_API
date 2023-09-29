@@ -21,9 +21,16 @@ class ImageUploadSerializer(serializers.Serializer):
 
             if UserPlan.objects.filter(user=user).exists():
                 if UserPlan.objects.get(user=user).plan.generate_expiring_links:
+                    print(UserPlan.objects.get(user=user).plan.generate_expiring_links)
                     self.fields["expiry_in_seconds"] = serializers.IntegerField(
-                        required=False, help_text="Optional expiry time in seconds"
+                        required=False,
+                        help_text="Optional expiry time in seconds,\
+                        needs to be between 300 and 30000 if used",
                     )
+
+    def validate_expiry_in_seconds(self, value):
+        if value is not None and (value < 300 or value > 30000):
+            raise serializers.ValidationError("Expiry time needs to be between 300 and 30000 seconds")
 
     def create(self, validated_data):
         # get user from request context
@@ -42,6 +49,12 @@ class ImageUploadSerializer(serializers.Serializer):
         response_dict = {}
         request = self.context.get("request")
         user_plan = UserPlan.objects.get(user=request.user)
+
+        response_dict["title"] = instance.title
+
+        # include the expiry_in_seconds in response if available
+        if instance.expiry_in_seconds:
+            response_dict["expiry_in_seconds"] = instance.expiry_in_seconds
         # check if user's plan allows include_original_link before including it in response
         if user_plan.plan.include_original_link:
             response_dict["original_image"] = request.build_absolute_uri(
@@ -58,3 +71,16 @@ class ImageUploadSerializer(serializers.Serializer):
                 )
 
         return response_dict
+
+
+class ImageListSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=100)
+    original_image = serializers.SerializerMethodField()
+    expired = serializers.SerializerMethodField()
+
+    def get_original_image(self, instance):
+        request = self.context.get("request")
+        return request.build_absolute_uri(reverse("images:serve_image", kwargs={"uuid": instance.uuid}))
+
+    def get_expired(self, instance):
+        return instance.is_expired()
