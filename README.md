@@ -39,6 +39,13 @@ Create a superuser
 
         $ docker-compose run --rm django python manage.py createsuperuser
 
+
+
+Run Tests
+
+        $ docker-compose run --rm django python manage.py test
+
+
 ---
 
 The Project creates the 3 base Plans required for the Image Hosting API out-of-the-box

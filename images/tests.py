@@ -123,6 +123,22 @@ class ImageUploadViewSetTests(TestCase):
         self.assertIn("200x200", thumbnails)
         self.assertIn("400x400", thumbnails)
 
+    def test_upload_image_with_invlaid_expiry(self):
+        url = reverse("api:image_upload-list")
+        # create a temporary image file
+        image = PILImage.new("RGB", (600, 600))
+        image_io = BytesIO()
+        image.save(image_io, format="JPEG")
+        image_file = SimpleUploadedFile("test_image.jpg", image_io.getvalue(), content_type="image/jpeg")
+
+        image_data = {"title": "Test Image", "image": image_file, "expiry_in_seconds": 30}
+        response = self.client.post(url, image_data, format="multipart")
+        response_data = response.json()
+        print(response_data)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response_data["expiry_in_seconds"], ["Expiry time needs to be between 300 and 30000 seconds"])
+
 
 class ImageListViewSetTests(TestCase):
     def setUp(self):
