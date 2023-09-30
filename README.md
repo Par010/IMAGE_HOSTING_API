@@ -9,71 +9,81 @@ Image Hosting API
 
 Moved to [settings](http://cookiecutter-django.readthedocs.io/en/latest/settings.html).
 
-## Basic Commands
+## Getting started with Image Hosting API
 
-### Setting Up Your Users
+Git clone and enter the repo
 
-- To create a **normal user account**, just go to Sign Up and fill out the form. Once you submit it, you'll see a "Verify Your E-mail Address" page. Go to your console to see a simulated email verification message. Copy the link into your browser. Now the user's email should be verified and ready to go.
+        $ cd IMAGE_HOSTING_API
 
-- To create a **superuser account**, use this command:
+Install direnv for environment variables setup
 
-      $ python manage.py createsuperuser
+        $ brew install direnv
 
-For convenience, you can keep your normal user logged in on Chrome and your superuser logged in on Firefox (or similar), so that you can see how the site behaves for both kinds of users.
+Then run
 
-### Type checks
+        $ direnv allow
 
-Running type checks with mypy:
+Setup Virtualenv and activate
 
-    $ mypy image_hosting_api
+        $ virtualenv image_hosting
+        $ source image_hosting/bin/activate
 
-### Test coverage
 
-To run the tests, check your test coverage, and generate an HTML coverage report:
+Build and Run Project
 
-    $ coverage run -m pytest
-    $ coverage html
-    $ open htmlcov/index.html
+        $ docker-compose build
+        $ docker-compose up
 
-#### Running tests with pytest
 
-    $ pytest
+Create a superuser
 
-### Live reloading and Sass CSS compilation
+        $ docker-compose run --rm django python manage.py createsuperuser
 
-Moved to [Live reloading and SASS compilation](https://cookiecutter-django.readthedocs.io/en/latest/developing-locally.html#sass-compilation-live-reloading).
+---
 
-### Celery
+The Project creates the 3 base Plans required for the Image Hosting API out-of-the-box
 
-This app comes with Celery.
+![Plans](readme_images/plans.png)
 
-To run a celery worker:
+Create users for Image Hosting API
 
-```bash
-cd image_hosting_api
-celery -A config.celery_app worker -l info
-```
+- Go to built in sign up form at http://127.0.0.1:8000/accounts/signup/ and enter Email Address and Password
+![Sign Up](readme_images/sign_up.png)
 
-Please note: For Celery's import magic to work, it is important _where_ the celery commands are run. If you are in the same folder with _manage.py_, you should be right.
+- Check the sample email in the docker django console and click on the link to verify (You can alternatively do this directly from Django-Admin as a superuser)
+![Email Verification Console](readme_images/email_confirmation_verification.png)
 
-To run [periodic tasks](https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html), you'll need to start the celery beat scheduler service. You can start it as a standalone process:
+- Once you click on the link you will be forwarded to a confirm email verification form, click confirm to be able to login and access the Images API
+![Confirm Verification Form](readme_images/confirm_verification.png)
 
-```bash
-cd image_hosting_api
-celery -A config.celery_app beat
-```
 
-or you can embed the beat service inside a worker with the `-B` option (not recommended for production use):
+Create UserPlans for these created users from Django Admin
 
-```bash
-cd image_hosting_api
-celery -A config.celery_app worker -B -l info
-```
+![User Plan Creation](readme_images/user_plan.png)
 
-## Deployment
+Signing in to access Image Hosting API
 
-The following details how to deploy this application.
+- Go to http://127.0.0.1:8000/accounts/login/ and enter the Email Address and Password from the step above. (Make sure you verify Email Address before this step)
+![Sign in](readme_images/sign_in.png)
+ - The login form will give you feedback that you logged in successfully
+![Sign in Successful](readme_images/successful_login.png)
 
-### Docker
+---
 
-See detailed [cookiecutter-django Docker documentation](http://cookiecutter-django.readthedocs.io/en/latest/deployment-with-docker.html).
+## Image Upload Endpoint with Browsable DRF
+
+Make sure you login prior to this step
+
+- Go to http://127.0.0.1:8000/api/images/ and you will see a DRF browsable form taking Title, Image, and Optionally Expiry in seconds (only if your plan allows this)
+![POST images endpoint](readme_images/post_images_request.png)
+- Once you POST the request, you will see a response with title, expiry_in_seconds (if plan allows), original_image which can be expired if requested (if plan allows), and thumbnails (all the thumbnail sizes your plan allows)
+![Response images endpoint](readme_images/post_images_response.png)
+
+---
+
+## Image List Endpoint with Browsable DRF
+
+- Go to http://127.0.0.1:8000/api/get/images/, this endpoint is only accessible for users whose plan allows generating expiring images.
+![Response images endpoint](readme_images/image_list_success.png)
+- If you access as a user without necessary permissions
+![Response images endpoint forbidden](readme_images/image_list_forbidden.png)
