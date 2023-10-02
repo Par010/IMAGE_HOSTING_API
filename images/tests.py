@@ -98,9 +98,9 @@ class ImageUploadViewSetTests(TestCase):
         self.user_plan = UserPlan.objects.create(user=self.user, plan=self.plan)
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
+        self.url = reverse("api:image_upload-list")
 
     def test_upload_image(self):
-        url = reverse("api:image_upload-list")
         # create a temporary image file
         image = PILImage.new("RGB", (600, 600))
         image_io = BytesIO()
@@ -108,7 +108,7 @@ class ImageUploadViewSetTests(TestCase):
         image_file = SimpleUploadedFile("test_image.jpg", image_io.getvalue(), content_type="image/jpeg")
 
         image_data = {"title": "Test Image", "image": image_file}
-        response = self.client.post(url, image_data, format="multipart")
+        response = self.client.post(self.url, image_data, format="multipart")
         response_data = response.json()
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -124,7 +124,6 @@ class ImageUploadViewSetTests(TestCase):
         self.assertIn("400x400", thumbnails)
 
     def test_upload_image_with_invlaid_expiry(self):
-        url = reverse("api:image_upload-list")
         # create a temporary image file
         image = PILImage.new("RGB", (600, 600))
         image_io = BytesIO()
@@ -132,12 +131,50 @@ class ImageUploadViewSetTests(TestCase):
         image_file = SimpleUploadedFile("test_image.jpg", image_io.getvalue(), content_type="image/jpeg")
 
         image_data = {"title": "Test Image", "image": image_file, "expiry_in_seconds": 30}
-        response = self.client.post(url, image_data, format="multipart")
+        response = self.client.post(self.url, image_data, format="multipart")
         response_data = response.json()
         print(response_data)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response_data["expiry_in_seconds"], ["Expiry time needs to be between 300 and 30000 seconds"])
+
+    def test_arbitary_plan_image_upload(self):
+        # create a arbirary user plan to test image upload
+        arbitary_user = User.objects.create_user(
+            email="testuserarbitaryplan@gmail.com",
+            password="testpassword",
+        )
+
+        arbitary_plan = Plan.objects.create(
+            name="Arbitary Plan",
+            thumbnail_sizes=[
+                {
+                    "height": 600,
+                    "width": 400,
+                },
+            ],
+            include_original_link=True,
+            generate_expiring_links=True,
+        )
+
+        UserPlan.objects.create(user=arbitary_user, plan=arbitary_plan)
+
+        # create a temporary image file
+        image = PILImage.new("RGB", (600, 600))
+        image_io = BytesIO()
+        image.save(image_io, format="JPEG")
+        image_file = SimpleUploadedFile("test_image.jpg", image_io.getvalue(), content_type="image/jpeg")
+
+        image_data = {"title": "Test Image", "image": image_file}
+        client = APIClient()
+        client.force_authenticate(user=arbitary_user)
+        response = client.post(self.url, image_data, format="multipart")
+        response_data = response.json()
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        thumbnails = response_data.get("thumbnails", {})
+        # check if 600x400 thumbnail exists in response JSON
+        self.assertIn("600x400", thumbnails)
 
 
 class ImageListViewSetTests(TestCase):
@@ -180,10 +217,10 @@ class ImageListViewSetTests(TestCase):
 
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
+        self.url = reverse("api:image_list-list")
 
     def test_list_images(self):
-        url = reverse("api:image_list-list")
-        response = self.client.get(url)
+        response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
@@ -193,8 +230,7 @@ class ImageListViewSetTests(TestCase):
         # turn generate_expiring_links False in Plan
         self.plan.generate_expiring_links = False
         self.plan.save()
-        url = reverse("api:image_list-list")
-        response = self.client.get(url)
+        response = self.client.get(self.url)
 
         # check if the endpoint raises 403
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
